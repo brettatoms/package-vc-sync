@@ -1,7 +1,7 @@
 ;;; package-vc-sync.el --- Sync packages from a declarative manifest -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2026 brettatoms
-;; Author: brettatoms <https://github.com/brettatoms>
+;; Author: brettatoms <brettadams@fastmail.com>
 ;; Version: 0.1.0
 ;; Package-Requires: ((emacs "29.1"))
 ;; Keywords: tools, convenience

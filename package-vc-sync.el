@@ -278,17 +278,21 @@ clear instead of failing the sync over it."
 (defvar package-vc-sync--cli nil
   "Non-nil when running as a CLI (`package-vc-sync-cli').")
 
+(defun package-vc-sync--format-names (names)
+  "Format the NAMES list for the summary: the names if any, else \"0\"."
+  (if names (format "%S" names) "0"))
+
 (defun package-vc-sync--print-summary (report)
   "Print a human-readable summary of REPORT.
 In CLI mode, writes to stderr.  Otherwise populates the
 *package-vc-sync* buffer."
   (let ((lines
          (list "package-vc-sync finished."
-               (format "  Installed:   %S" (nreverse (package-vc-sync--report-installed report)))
-               (format "  Upgraded:    %S" (nreverse (package-vc-sync--report-upgraded report)))
-               (format "  Reinstalled: %S" (nreverse (package-vc-sync--report-reinstalled report)))
-               (format "  Pinned:      %S" (nreverse (package-vc-sync--report-pinned report)))
-               (format "  Failed:      %S" (nreverse (package-vc-sync--report-failed report))))))
+               (format "  Installed:   %s" (package-vc-sync--format-names (nreverse (package-vc-sync--report-installed report))))
+               (format "  Upgraded:    %s" (package-vc-sync--format-names (nreverse (package-vc-sync--report-upgraded report))))
+               (format "  Reinstalled: %s" (package-vc-sync--format-names (nreverse (package-vc-sync--report-reinstalled report))))
+               (format "  Pinned:      %s" (package-vc-sync--format-names (nreverse (package-vc-sync--report-pinned report))))
+               (format "  Failed:      %s" (package-vc-sync--format-names (nreverse (package-vc-sync--report-failed report)))))))
     (if package-vc-sync--cli
         (dolist (line lines)
           (princ line #'external-debugging-output)

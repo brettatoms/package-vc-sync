@@ -1,6 +1,6 @@
 # package-vc-sync
 
-Sync your Emacs packages from a declarative manifest.  Built on Emacs's `package.el` and `package-vc`.
+Sync your Emacs packages from a declarative manifest. Built on Emacs's `package.el` and `package-vc`.
 
 - Install missing packages (from MELPA/ELPA archives or git repos)
 - Upgrade installed ones

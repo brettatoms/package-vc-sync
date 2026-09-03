@@ -3,7 +3,7 @@
 ;; Copyright (C) 2026 brettatoms
 ;; Author: brettatoms <brettadams@fastmail.com>
 ;; Version: 0.1.0
-;; Package-Requires: ((emacs "29.1"))
+;; Package-Requires: ((emacs "30.1"))
 ;; Keywords: tools, convenience
 ;; URL: https://github.com/brettatoms/package-vc-sync
 ;; SPDX-License-Identifier: GPL-3.0-or-later
@@ -142,7 +142,15 @@ Return the `package-vc-sync--report' for this run."
        (error "package-vc-sync: could not refresh archives and no cached metadata exists: %S" err))))
   (let* ((report (package-vc-sync--make-report))
          (state (package-vc-sync--read-state))
-         (processes-before (process-list)))
+         (processes-before (process-list))
+         ;; `package-vc-install' mutates `package-vc-selected-packages' itself
+         ;; as a side effect on Emacs 29/30 (visible as "Setting
+         ;; `package-vc-selected-packages' temporarily..."), overwriting an
+         ;; entry with just the :url plist it cloned from and dropping a
+         ;; separately-passed revision string.  Snapshot the manifest's
+         ;; declared value now, before `--sync-vc' can trigger that, so the
+         ;; state file records what the manifest actually said.
+         (manifest-vc-packages package-vc-selected-packages))
     (package-vc-sync--sync-archives report)
     (package-vc-sync--sync-vc report state)
     (package-vc-sync--warn-removed state)
@@ -152,7 +160,7 @@ Return the `package-vc-sync--report' for this run."
       (package-vc-sync--write-state
        (mapcar (lambda (entry)
                  (cons (package-vc-sync--manifest-name entry) (cdr entry)))
-               package-vc-selected-packages))
+               manifest-vc-packages))
       report)))
 
 (defun package-vc-sync--sync-archives (report)
@@ -205,6 +213,27 @@ name against archive metadata, which a private repository does not have."
   "Return the package name of manifest ENTRY, interned if a string."
   (if (stringp (car entry)) (intern (car entry)) (car entry)))
 
+(defconst package-vc-sync--vc-lock-retries 20
+  "Max retries for `package-vc-sync--upgrade-retrying' before giving up.")
+
+(defun package-vc-sync--upgrade-retrying (desc)
+  "Call `package-vc-upgrade' on DESC, retrying if another VC action is busy.
+A background VC action (e.g. an async status refresh right after install)
+can still hold the checkout's VC output buffer when this runs; that shows
+up as `vc-do-async-command' signaling \"Another VC action ... is running\".
+That is a transient race, not a real failure, so wait briefly for it to
+clear instead of failing the sync over it."
+  (let ((attempts 0) (done nil))
+    (while (not done)
+      (condition-case err
+          (progn (package-vc-upgrade desc) (setq done t))
+        (error
+         (if (and (< attempts package-vc-sync--vc-lock-retries)
+                  (string-match-p "\`Another VC action on .* is running\'"
+                                   (error-message-string err)))
+             (progn (cl-incf attempts) (accept-process-output nil 0.25))
+           (signal (car err) (cdr err))))))))
+
 (defun package-vc-sync--sync-vc (report state)
   "Install/upgrade/reinstall VC packages per the manifest."
   (dolist (entry package-vc-selected-packages)
@@ -219,7 +248,7 @@ name against archive metadata, which a private repository does not have."
                     ('frozen
                      (push name (package-vc-sync--report-pinned report)))
                     (_
-                     (package-vc-upgrade desc)
+                     (package-vc-sync--upgrade-retrying desc)
                      (push name (package-vc-sync--report-upgraded report))))
                 ;; Spec changed: reinstall.
                 (package-vc-sync--force-install name spec)

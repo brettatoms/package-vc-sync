@@ -20,7 +20,7 @@ Or straight from git, before it reaches MELPA:
   :vc (:url "https://github.com/brettatoms/package-vc-sync"))
 ```
 
-Requires Emacs 29.1+.
+Requires Emacs 30.1+.
 
 ## The no-blocking-at-startup pattern
 

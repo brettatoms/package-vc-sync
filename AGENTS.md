@@ -6,8 +6,10 @@
   `:lisp-dir`, `:main-file`, `:doc`, `:make`, `:shell-command`,
   `:vc-backend`, bare-string specs). Never add `:rev`/`:newest`/`:latest`
   to manifests or docs — package-vc silently ignores unknown keys.
-- Emacs 29.1+ compatibility: no `package-get-descriptor` with `dir`/`kind`
-  args; use `package-vc-sync--installed-vc-desc`.
+- Minimum supported Emacs is 30.1, not 29.1: testing found `package-vc-upgrade`
+  hits an unrecoverable async VC lock error on Emacs 29.4 (see the design
+  doc's Emacs version support section). Don't lower `Package-Requires`
+  without re-verifying against a real 29.x build.
 - Tests never touch the network. The VC path uses real local git repos; the
   archive path is tested by stubbing `package-refresh-contents`,
   `package-install` and `package-upgrade-all` — there is no archive fixture,
